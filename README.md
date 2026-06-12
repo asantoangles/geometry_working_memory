@@ -2,8 +2,6 @@
 
 Code of manuscript: Santo-Angles A., Yang J., Zhou Y., Chu W.K.H., Lindsay G.W., Sreenivasan K.K. Neural Subspaces Encode Sequential Working Memory, but Neural Sequences Do Not. bioRxiv (2025). doi: https://doi.org/10.1101/2025.09.05.674385
 
-This repository contains all scripts used in Santo-Angles et al. (2025).
-
 To facilitate reproducibility, intermediate outputs from both the neural geometry and neural sequence analyses are available at the OSF repository https://osf.io/hvq8p.
 
 For the neural geometry pipeline, we provide the neural activity matrices (X) used to compute the neural subspaces, as well as the resulting subspaces (principal component scores) derived from these matrices. For the neural sequences pipeline, we provide the decoded state spaces (classifier prediction outputs) that serve as inputs to the Temporal Delayed Linear Modelling (TDLM) analyses. The scripts in folders neural_subspaces and neural_sequences reproduce the figures reported in the manuscript.
