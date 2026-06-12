@@ -1,0 +1,789 @@
+%% GERE project
+
+folder_inputs = 'X_matrix';
+folder_outputs = 'LG23';
+
+% path
+if isfolder('/path_to_local')
+    path_root = '/path_to_local';
+    subjects = [1:15];
+else
+    path_root = '/path_to_hpc';
+end
+
+path_results = [path_root '/github/results/source_geometry_lm/' folder_outputs];
+addpath([path_root '/github/scripts/source_geometry_lm/utilities'])
+
+% settings
+segments_start = 1:300:3701;
+segments_end = 300:300:4000;
+delay_segments = [segments_start; segments_end]';
+
+stim_segments = [];
+stim_segments(end+1,:) = [1 300];
+stim_segments(end+1,:) = [400 700];
+stim_segments(end+1,:) = [800 1100];
+stim_segments(end+1,:) = [1200 1500];
+
+number_parcels = 200;
+sessions = 1:2;
+number_locations = 8;
+performance = {'correct_trials', 'incorrect_trials'};
+events = {'delay', 'stim'};
+fun_i = @mean;
+components = 1:3;
+iterations_bootstrap = 1000;
+
+
+
+
+%%%%%%%%%%%%%%%%%%
+%% separability %%
+%%%%%%%%%%%%%%%%%%
+
+%%% delay
+
+time_segments = delay_segments;
+
+% loop over time windows
+for time_i = 1:size(time_segments, 1)
+
+    disp(['delay_' num2str(time_segments(time_i,1)) 'to' num2str(time_segments(time_i,2))]);
+
+    % loop over sequence length
+    for sequence_length = [3 4]
+
+        if sequence_length == 3
+            seq_name = 'length3';
+            ranks = 3;
+        elseif sequence_length == 4
+            seq_name = 'length4';
+            ranks = 4;
+        end
+
+        for perf_i = 1:length(performance)
+
+            outdir_volume = [path_results '/group_results/volume/' func2str(fun_i) '/' performance{perf_i} '/design_matrix'];
+            outdir_distance = [path_results '/group_results/distance/' func2str(fun_i) '/' performance{perf_i} '/design_matrix'];
+
+            if ~isfolder(outdir_volume)
+                mkdir(outdir_volume);
+            end
+
+            if ~isfolder(outdir_distance)
+                mkdir(outdir_distance);
+            end
+
+            if ~isfile([outdir_volume '/delay_' seq_name '_' num2str(time_segments(time_i,1)) 'to' num2str(time_segments(time_i,2)) '.txt'])
+
+                matrix_design_volume = nan(0,5); % columns: (1) intercept, (2) variable of interest (e.g. PA), (3) condition, (4) subject, (5) session
+                matrix_design_dist = nan(0,5); % columns: (1) intercept, (2) variable of interest (e.g. PA), (3) condition, (4) subject, (5) session
+
+                for sub_i = 1:length(subjects)
+                
+                    subject = subjects(sub_i);
+                                
+                    %% load data
+            
+                    % set paths
+                    if subject < 10
+                        subject_ID = ['sub_0' num2str(subject)];
+                        subjectID = ['sub0' num2str(subject)];
+                    else
+                        subject_ID = ['sub_' num2str(subject)];
+                        subjectID = ['sub' num2str(subject)];
+                    end
+                        
+                    indir = [path_results '/' subject_ID '/' func2str(fun_i) '/' performance{perf_i} '/delay_' num2str(time_segments(time_i,1)) 'to' num2str(time_segments(time_i,2))];
+                    load([indir '/separability_' seq_name '.mat']); % separability
+
+                    if ranks == 3
+
+                        volume_delay = [separability.volume{1} separability.volume{2} separability.volume{3}];
+                        distance_delay = [separability.distance_by_separation{1}; separability.distance_by_separation{2}; separability.distance_by_separation{3}];
+
+                    else
+
+                        volume_delay = [separability.volume{1} separability.volume{2} separability.volume{3}, separability.volume{4}];
+                        distance_delay = [separability.distance_by_separation{1}; separability.distance_by_separation{2}; separability.distance_by_separation{3}; separability.distance_by_separation{4}];
+
+                    end
+
+                    % volume
+                    for row_i = 1:length(volume_delay)
+                        matrix_design_volume(size(matrix_design_volume,1)+1,2) = volume_delay(row_i);
+                        matrix_design_volume(size(matrix_design_volume,1),1) = 1;
+                        matrix_design_volume(size(matrix_design_volume,1),3) = 1;
+                        matrix_design_volume(size(matrix_design_volume,1),4) = sub_i;
+                    end
+
+                    % dist
+                    distance_delay = distance_delay(:);
+
+                    for row_i = 1:length(distance_delay)
+                        matrix_design_dist(size(matrix_design_dist,1)+1,2) = distance_delay(row_i);
+                        matrix_design_dist(size(matrix_design_dist,1),1) = 1;
+                        matrix_design_dist(size(matrix_design_dist,1),3) = 1;
+                        matrix_design_dist(size(matrix_design_dist,1),4) = sub_i;
+                    end
+                    
+                end
+
+                %% volume
+
+                matrix_design = matrix_design_volume;
+
+                % response variable
+                response = matrix_design(:,2);
+
+                % random intercepts
+                condition = categorical(matrix_design(:,3));
+                subject = categorical(matrix_design(:,4));
+                session = categorical(matrix_design(:,5));
+
+                % Create a table from the data
+                data = table(response, condition, subject, session);
+
+                % save data matrix
+                writetable(data, [outdir_volume '/delay_' seq_name '_' num2str(time_segments(time_i,1)) 'to' num2str(time_segments(time_i,2)) '.txt']);
+
+                %% distance
+
+                matrix_design = matrix_design_dist;
+
+                % response variable
+                response = matrix_design(:,2);
+
+                % random intercepts
+                condition = categorical(matrix_design(:,3));
+                subject = categorical(matrix_design(:,4));
+                session = categorical(matrix_design(:,5));
+
+                % Create a table from the data
+                data = table(response, condition, subject, session);
+
+                % save data matrix
+                writetable(data, [outdir_distance '/delay_' seq_name '_' num2str(time_segments(time_i,1)) 'to' num2str(time_segments(time_i,2)) '.txt']);
+                    
+            end
+            
+        end
+
+    end
+
+end
+
+%%% stim
+
+time_segments = stim_segments;
+
+% loop over time windows
+for time_i = 1:size(time_segments, 1)
+
+    disp(['stim_' num2str(time_segments(time_i,1)) 'to' num2str(time_segments(time_i,2))]);
+
+    % loop over sequence length
+    for sequence_length = [3 4]
+
+        if sequence_length == 3
+            seq_name = 'length3';
+            ranks = 3;
+        elseif sequence_length == 4
+            seq_name = 'length4';
+            ranks = 4;
+        end
+
+        % subset X matrix depending on stimuli presented
+        if sequence_length == 3
+            if time_segments(time_i,1) == 1 && time_segments(time_i,2) == 300
+                stim_order = 1;
+            elseif time_segments(time_i,1) == 400 && time_segments(time_i,2) == 700
+                stim_order = 2;
+            elseif time_segments(time_i,1) == 800 && time_segments(time_i,2) == 1100
+                stim_order = 3;
+            elseif time_segments(time_i,1) == 1200 && time_segments(time_i,2) == 1500
+                stim_order = 3;
+            end
+
+        else
+            if time_segments(time_i,1) == 1 && time_segments(time_i,2) == 300
+                stim_order = 1;
+            elseif time_segments(time_i,1) == 400 && time_segments(time_i,2) == 700
+                stim_order = 2;
+            elseif time_segments(time_i,1) == 800 && time_segments(time_i,2) == 1100
+                stim_order = 3;
+            elseif time_segments(time_i,1) == 1200 && time_segments(time_i,2) == 1500
+                stim_order = 4;
+            end
+        end
+        
+        for perf_i = 1:length(performance)
+
+            outdir_volume = [path_results '/group_results/volume/' func2str(fun_i) '/' performance{perf_i} '/design_matrix'];
+            outdir_distance = [path_results '/group_results/distance/' func2str(fun_i) '/' performance{perf_i} '/design_matrix'];
+
+            if ~isfolder(outdir_volume)
+                mkdir(outdir_volume);
+            end
+
+            if ~isfolder(outdir_distance)
+                mkdir(outdir_distance);
+            end
+            
+            if ~isfile([outdir_volume '/stim_' seq_name '_' num2str(time_segments(time_i,1)) 'to' num2str(time_segments(time_i,2)) '.txt'])
+
+                matrix_design_volume = nan(0,5); % columns: (1) intercept, (2) variable of interest (e.g. PA), (3) condition, (4) subject, (5) session
+                matrix_design_dist = nan(0,5); % columns: (1) intercept, (2) variable of interest (e.g. PA), (3) condition, (4) subject, (5) session
+
+                for sub_i = 1:length(subjects)
+                
+                    subject = subjects(sub_i);
+                                
+                    %% load data
+            
+                    % set paths
+                    if subject < 10
+                        subject_ID = ['sub_0' num2str(subject)];
+                        subjectID = ['sub0' num2str(subject)];
+                    else
+                        subject_ID = ['sub_' num2str(subject)];
+                        subjectID = ['sub' num2str(subject)];
+                    end
+                        
+                    indir = [path_results '/' subject_ID '/' func2str(fun_i) '/' performance{perf_i} '/stim_' num2str(time_segments(time_i,1)) 'to' num2str(time_segments(time_i,2))];
+
+                    if isfile([indir '/separability_' seq_name '.mat'])
+
+                        load([indir '/separability_' seq_name '.mat']); % separability
+    
+                        if stim_order == 1
+                            volume_stim = [separability.volume{1}];
+                            distance_stim = [separability.distance_by_separation{1}];
+                        end
+    
+                        if stim_order == 2
+                            volume_stim = [separability.volume{1} separability.volume{2}];
+                            distance_stim = [separability.distance_by_separation{1}; separability.distance_by_separation{2}];
+                        end
+    
+                        if stim_order == 3
+                            volume_stim = [separability.volume{1} separability.volume{2} separability.volume{3}];
+                            distance_stim = [separability.distance_by_separation{1}; separability.distance_by_separation{2}; separability.distance_by_separation{3}];
+                        end
+    
+                        if stim_order == 4
+                            volume_stim = [separability.volume{1} separability.volume{2} separability.volume{3}, separability.volume{4}];
+                            distance_stim = [separability.distance_by_separation{1}; separability.distance_by_separation{2}; separability.distance_by_separation{3}; separability.distance_by_separation{4}];
+                        end
+    
+                        % volume
+                        for row_i = 1:length(volume_stim)
+                            matrix_design_volume(size(matrix_design_volume,1)+1,2) = volume_stim(row_i);
+                            matrix_design_volume(size(matrix_design_volume,1),1) = 1;
+                            matrix_design_volume(size(matrix_design_volume,1),3) = 1;
+                            matrix_design_volume(size(matrix_design_volume,1),4) = sub_i;
+                        end
+    
+                        % dist
+                        distance_stim = distance_stim(:);
+    
+                        for row_i = 1:length(distance_stim)
+                            matrix_design_dist(size(matrix_design_dist,1)+1,2) = distance_stim(row_i);
+                            matrix_design_dist(size(matrix_design_dist,1),1) = 1;
+                            matrix_design_dist(size(matrix_design_dist,1),3) = 1;
+                            matrix_design_dist(size(matrix_design_dist,1),4) = sub_i;
+                        end
+
+                    end
+                    
+                end
+
+                %% volume
+
+                matrix_design = matrix_design_volume;
+
+                % response variable
+                response = matrix_design(:,2);
+
+                % random intercepts
+                condition = categorical(matrix_design(:,3));
+                subject = categorical(matrix_design(:,4));
+                session = categorical(matrix_design(:,5));
+
+                % Create a table from the data
+                data = table(response, condition, subject, session);
+
+                % save data matrix
+                writetable(data, [outdir_volume '/stim_' seq_name '_' num2str(time_segments(time_i,1)) 'to' num2str(time_segments(time_i,2)) '.txt']);
+
+                %% distance
+
+                matrix_design = matrix_design_dist;
+
+                % response variable
+                response = matrix_design(:,2);
+
+                % random intercepts
+                condition = categorical(matrix_design(:,3));
+                subject = categorical(matrix_design(:,4));
+                session = categorical(matrix_design(:,5));
+
+                % Create a table from the data
+                data = table(response, condition, subject, session);
+
+                % save data matrix
+                writetable(data, [outdir_distance '/stim_' seq_name '_' num2str(time_segments(time_i,1)) 'to' num2str(time_segments(time_i,2)) '.txt']);
+                    
+            end
+            
+        end
+
+    end
+
+end
+
+
+
+%%%%%%%%%%%%%%%%%%%%%
+%% principal angle %%
+%%%%%%%%%%%%%%%%%%%%%
+
+%%% delay 
+
+time_segments = delay_segments;
+
+% loop over time windows
+for time_i = 1:size(time_segments, 1)
+
+    disp([func2str(fun_i) ' delay_' num2str(time_segments(time_i,1)) 'to' num2str(time_segments(time_i,2))]);
+
+    % loop over sequence length
+    for sequence_length = [3 4]
+
+        if sequence_length == 3
+            seq_name = 'length3';
+            ranks = 3;
+        elseif sequence_length == 4
+            seq_name = 'length4';
+            ranks = 4;
+        end
+
+        for perf_i = 1:length(performance)
+
+            outdir = [path_results '/group_results/principal_angle/' func2str(fun_i) '/' performance{perf_i} '/design_matrix'];
+
+            if ~isfolder(outdir)
+                mkdir(outdir);
+            end
+            
+            if ~isfile([outdir '/delay_' seq_name '_' num2str(time_segments(time_i,1)) 'to' num2str(time_segments(time_i,2)) '.txt'])
+
+                between_within = nan(0,4); % columns: (1) variable of interest (PAs), (2) between [1] or within [2], (3) subject, (4) session
+
+                % pool data into the matrix design
+                for sub_i = 1:length(subjects)
+                
+                    subject = subjects(sub_i);
+                                    
+                    %% load data
+            
+                    % set paths
+                    if subject < 10
+                        subject_ID = ['sub_0' num2str(subject)];
+                        subjectID = ['sub0' num2str(subject)];
+                    else
+                        subject_ID = ['sub_' num2str(subject)];
+                        subjectID = ['sub' num2str(subject)];
+                    end
+                       
+                    % store between and within angles
+                    indir = [path_results '/' subject_ID '/' func2str(fun_i) '/' performance{perf_i} '/delay_' num2str(time_segments(time_i,1)) 'to' num2str(time_segments(time_i,2))];
+                    load([indir '/angle_' seq_name '.mat']); % angle
+
+                    between = angle;
+                    between(logical(eye(size(between)))) = 0;
+                    between = triu(between); between = between(:);
+                    between(between == 0) = [];
+
+                    if isfile([indir '/angle_bootstrap_' seq_name '.mat'])
+                        load([indir '/angle_bootstrap_' seq_name '.mat']); % angle_bootstrap                        
+                        within = diag(angle_bootstrap.median);
+                    else
+                        within = [];
+                    end
+
+                    first_row = size(between_within,1)+1;
+                    tmp = [between; within];
+                    last_row = first_row + length(tmp) - 1;
+
+                    between_within(first_row:last_row,1) = tmp;
+                    between_within(first_row:last_row,2) = [ones(length(between),1); 2*ones(length(within),1)];
+                    between_within(first_row:last_row,3) = sub_i;
+
+                end
+        
+                % between_within columns: 
+                % (1) angle, 
+                % (2) 1 for between-subspaces, 2 for within-subspaces
+                % (3) subject idx
+                
+                % save between_within
+                writetable(table(between_within), [outdir '/delay_' seq_name '_' num2str(time_segments(time_i,1)) 'to' num2str(time_segments(time_i,2)) '.txt']);
+                
+            end
+
+        end
+
+    end
+
+end
+
+%%% stim
+
+time_segments = stim_segments;
+
+% loop over sequence length
+for sequence_length = [3 4]
+
+    if sequence_length == 3
+        seq_name = 'length3';
+        ranks = 3;
+    elseif sequence_length == 4
+        seq_name = 'length4';
+        ranks = 4;
+    end
+        
+    % loop over time windows
+    for time_i = 1:size(time_segments, 1)
+
+        disp(['stim_' num2str(time_segments(time_i,1)) 'to' num2str(time_segments(time_i,2))]);
+
+        % subset X matrix depending on stimuli presented
+        if sequence_length == 3
+            if time_segments(time_i,1) == 1 && time_segments(time_i,2) == 300
+                stim_order = 1;
+            elseif time_segments(time_i,1) == 400 && time_segments(time_i,2) == 700
+                stim_order = 2;
+            elseif time_segments(time_i,1) == 800 && time_segments(time_i,2) == 1100
+                stim_order = 3;
+            elseif time_segments(time_i,1) == 1200 && time_segments(time_i,2) == 1500
+                stim_order = 3;
+            end
+    
+        else
+            if time_segments(time_i,1) == 1 && time_segments(time_i,2) == 300
+                stim_order = 1;
+            elseif time_segments(time_i,1) == 400 && time_segments(time_i,2) == 700
+                stim_order = 2;
+            elseif time_segments(time_i,1) == 800 && time_segments(time_i,2) == 1100
+                stim_order = 3;
+            elseif time_segments(time_i,1) == 1200 && time_segments(time_i,2) == 1500
+                stim_order = 4;
+            end
+        end
+        
+        for perf_i = 1:length(performance)
+
+            outdir = [path_results '/group_results/principal_angle/' func2str(fun_i) '/' performance{perf_i} '/design_matrix'];
+
+            if ~isfolder(outdir)
+                mkdir(outdir);
+            end
+            
+            if ~isfile([outdir '/stim_' seq_name '_' num2str(time_segments(time_i,1)) 'to' num2str(time_segments(time_i,2)) '.txt'])
+
+                between_within = nan(0,4); % columns: (1) variable of interest (PAs), (2) between [1] or within [2], (3) subject, (4) session
+
+                % pool data into the matrix design
+                for sub_i = 1:length(subjects)
+                
+                    subject = subjects(sub_i);
+                                
+                    %% load data
+            
+                    % set paths
+                    if subject < 10
+                        subject_ID = ['sub_0' num2str(subject)];
+                        subjectID = ['sub0' num2str(subject)];
+                    else
+                        subject_ID = ['sub_' num2str(subject)];
+                        subjectID = ['sub' num2str(subject)];
+                    end
+                        
+                    % store between and within angles
+                    indir = [path_results '/' subject_ID '/' func2str(fun_i) '/' performance{perf_i} '/stim_' num2str(time_segments(time_i,1)) 'to' num2str(time_segments(time_i,2))];
+
+                    if isfile([indir '/angle_' seq_name '.mat'])
+
+                        load([indir '/angle_' seq_name '.mat']); % angle
+    
+                        between = angle;
+                        between(logical(eye(size(between)))) = 0;
+                        between = triu(between); between = between(:);
+                        between(between == 0) = [];
+    
+                        if isfile([indir '/angle_bootstrap_' seq_name '.mat'])
+                            load([indir '/angle_bootstrap_' seq_name '.mat']); % angle_bootstrap                        
+                            within = diag(angle_bootstrap.median);
+                        else
+                            within = [];
+                        end
+    
+                        first_row = size(between_within,1)+1;
+                        tmp = [between; within];
+                        last_row = first_row + length(tmp) - 1;
+    
+                        between_within(first_row:last_row,1) = tmp;
+                        between_within(first_row:last_row,2) = [ones(length(between),1); 2*ones(length(within),1)];
+                        between_within(first_row:last_row,3) = sub_i;
+                    
+                    end
+
+                end
+
+                % between_within columns: 
+                % (1) angle, 
+                % (2) 1 for between-subspaces, 2 for within-subspaces
+                % (3) subject idx
+
+                % save between_within
+                writetable(table(between_within), [outdir '/stim_' seq_name '_' num2str(time_segments(time_i,1)) 'to' num2str(time_segments(time_i,2)) '.txt']);
+                
+            end
+
+        end
+
+    end
+
+end
+
+
+
+%%%%%%%%%
+%% vaf %%
+%%%%%%%%%
+
+% It equals 0 if the two subspaces are orthogonal and 
+% equals 1 if they completely overlap with each other.
+
+% lme intercept tests whether vaf(between - within) is
+% different from zero
+
+% if t-stat < 0, vaf_between < vaf_within, so 
+% between-subsapces is more orthogonal than within-subspaces
+
+
+%%% delay 
+
+time_segments = delay_segments;
+
+% loop over time windows
+for time_i = 1:size(time_segments, 1)
+
+    disp([func2str(fun_i) ' delay_' num2str(time_segments(time_i,1)) 'to' num2str(time_segments(time_i,2))]);
+
+    % loop over sequence length
+    for sequence_length = [3 4]
+
+        if sequence_length == 3
+            seq_name = 'length3';
+            ranks = 3;
+        elseif sequence_length == 4
+            seq_name = 'length4';
+            ranks = 4;
+        end
+
+        for perf_i = 1:length(performance)
+
+            outdir = [path_results '/group_results/vaf/' func2str(fun_i) '/' performance{perf_i} '/design_matrix'];
+
+            if ~isfolder(outdir)
+                mkdir(outdir);
+            end
+
+            if ~isfile([outdir '/delay_' seq_name '_' num2str(time_segments(time_i,1)) 'to' num2str(time_segments(time_i,2)) '.txt'])
+
+                between_within = nan(0,4); % columns: (1) variable of interest (PAs), (2) between [1] or within [2], (3) subject, (4) session
+
+                % pool data into the matrix design
+                for sub_i = 1:length(subjects)
+                
+                    subject = subjects(sub_i);
+                                    
+                    %% load data
+            
+                    % set paths
+                    if subject < 10
+                        subject_ID = ['sub_0' num2str(subject)];
+                        subjectID = ['sub0' num2str(subject)];
+                    else
+                        subject_ID = ['sub_' num2str(subject)];
+                        subjectID = ['sub' num2str(subject)];
+                    end
+                        
+                    % store between and within vaf
+                    indir = [path_results '/' subject_ID '/' func2str(fun_i) '/' performance{perf_i} '/delay_' num2str(time_segments(time_i,1)) 'to' num2str(time_segments(time_i,2))];
+                    load([indir '/vaf_' seq_name '.mat']); % vaf
+
+                    between = vaf;
+                    between(logical(eye(size(between)))) = 0;
+                    between = triu(between); between = between(:);
+                    between(between == 0) = [];
+
+                    if isfile([indir '/vaf_bootstrap_' seq_name '.mat'])
+                        load([indir '/vaf_bootstrap_' seq_name '.mat']); % vaf_bootstrap
+                        within = diag(vaf_bootstrap.median);
+                    else
+                        within = [];
+                    end
+
+                    first_row = size(between_within,1)+1;
+                    tmp = [between; within];
+                    last_row = first_row + length(tmp) - 1;
+
+                    between_within(first_row:last_row,1) = tmp;
+                    between_within(first_row:last_row,2) = [ones(length(between),1); 2*ones(length(within),1)];
+                    between_within(first_row:last_row,3) = sub_i;
+                    
+
+                end
+
+                % between_within columns: 
+                % (1) vaf, 
+                % (2) 1 for between-subspaces, 2 for within-subspaces
+                % (3) subject idx
+
+                % save between_within
+                writetable(table(between_within), [outdir '/delay_' seq_name '_' num2str(time_segments(time_i,1)) 'to' num2str(time_segments(time_i,2)) '.txt']);
+                
+            end
+
+        end
+
+    end
+
+end
+
+
+%%% stim
+
+time_segments = stim_segments;
+
+% loop over sequence length
+for sequence_length = [3 4]
+
+    if sequence_length == 3
+        seq_name = 'length3';
+        ranks = 3;
+    elseif sequence_length == 4
+        seq_name = 'length4';
+        ranks = 4;
+    end
+        
+    % loop over time windows
+    for time_i = 1:size(time_segments, 1)
+
+        disp(['stim_' num2str(time_segments(time_i,1)) 'to' num2str(time_segments(time_i,2))]);
+
+        % subset X matrix depending on stimuli presented
+        if sequence_length == 3
+            if time_segments(time_i,1) == 1 && time_segments(time_i,2) == 300
+                stim_order = 1;
+            elseif time_segments(time_i,1) == 400 && time_segments(time_i,2) == 700
+                stim_order = 2;
+            elseif time_segments(time_i,1) == 800 && time_segments(time_i,2) == 1100
+                stim_order = 3;
+            elseif time_segments(time_i,1) == 1200 && time_segments(time_i,2) == 1500
+                stim_order = 3;
+            end
+    
+        else
+            if time_segments(time_i,1) == 1 && time_segments(time_i,2) == 300
+                stim_order = 1;
+            elseif time_segments(time_i,1) == 400 && time_segments(time_i,2) == 700
+                stim_order = 2;
+            elseif time_segments(time_i,1) == 800 && time_segments(time_i,2) == 1100
+                stim_order = 3;
+            elseif time_segments(time_i,1) == 1200 && time_segments(time_i,2) == 1500
+                stim_order = 4;
+            end
+        end
+        
+        for perf_i = 1:length(performance)
+
+            outdir = [path_results '/group_results/vaf/' func2str(fun_i) '/' performance{perf_i} '/design_matrix'];
+
+            if ~isfolder(outdir)
+                mkdir(outdir);
+            end
+            
+            if ~isfile([outdir '/stim_' seq_name '_' num2str(time_segments(time_i,1)) 'to' num2str(time_segments(time_i,2)) '.txt'])
+
+                between_within = nan(0,4); % columns: (1) variable of interest (PAs), (2) between [1] or within [2], (3) subject, (4) session
+
+                % pool data into the matrix design
+                for sub_i = 1:length(subjects)
+                
+                    subject = subjects(sub_i);
+                                
+                    %% load data
+            
+                    % set paths
+                    if subject < 10
+                        subject_ID = ['sub_0' num2str(subject)];
+                        subjectID = ['sub0' num2str(subject)];
+                    else
+                        subject_ID = ['sub_' num2str(subject)];
+                        subjectID = ['sub' num2str(subject)];
+                    end
+                        
+                    % store between and within vaf
+                    indir = [path_results '/' subject_ID '/' func2str(fun_i) '/' performance{perf_i} '/stim_' num2str(time_segments(time_i,1)) 'to' num2str(time_segments(time_i,2))];
+                    
+                    if isfile([indir '/vaf_' seq_name '.mat'])
+                    
+                        load([indir '/vaf_' seq_name '.mat']); % vaf
+    
+                        between = vaf;
+                        between(logical(eye(size(between)))) = 0;
+                        between = triu(between); between = between(:);
+                        between(between == 0) = [];
+    
+                        if isfile([indir '/vaf_bootstrap_' seq_name '.mat'])
+                            load([indir '/vaf_bootstrap_' seq_name '.mat']); % vaf_bootstrap
+                            within = diag(vaf_bootstrap.median);
+                        else
+                            within = [];
+                        end
+    
+                        first_row = size(between_within,1)+1;
+                        tmp = [between; within];
+                        last_row = first_row + length(tmp) - 1;
+    
+                        between_within(first_row:last_row,1) = tmp;
+                        between_within(first_row:last_row,2) = [ones(length(between),1); 2*ones(length(within),1)];
+                        between_within(first_row:last_row,3) = sub_i;
+
+                    end
+
+                end
+
+                % between_within columns: 
+                % (1) vaf, 
+                % (2) 1 for between-subspaces, 2 for within-subspaces
+                % (3) subject idx
+
+                % save between_within
+                writetable(table(between_within), [outdir '/stim_' seq_name '_' num2str(time_segments(time_i,1)) 'to' num2str(time_segments(time_i,2)) '.txt']);
+                
+            end
+
+        end
+
+    end
+
+end
+
+
+
+disp('Analysis done')
