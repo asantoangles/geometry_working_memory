@@ -8,6 +8,8 @@ For the neural geometry pipeline, we provide the neural activity matrices (X) us
 
 To run the analyses, download the GitHub repository and place it in path_to_local/scripts, and download the OSF repository and place it in path_to_local/results.
 
+The expected runtime of the entire pipeline is approximately 24-36 hours, depending on the computational environment and configuration. When starting from the intermediate outputs made available, the remaining pipeline takes approximately 2-4 hours to complete.
+
 ## software
 
 The code was developed and tested using MATLAB R2026a on a Mac laptop and the NYU Abu Dhabi (NYUAD) HPC cluster. R version 4.2.1 was used on the Mac laptop. The software is made publicly available under the MIT License.
