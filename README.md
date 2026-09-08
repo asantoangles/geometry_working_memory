@@ -44,38 +44,40 @@ Geometric analysis of neural subspaces.
 
 Folders define distinct blocks of analysis. For example, LB23 contains empirical results for a given analysis block. Folders with the suffix _controlled_resampling contain resampling analyses used to compare correct and incorrect trials. Folders with the suffix _random contain surrogate datasets used for geometry control analyses. Finally, folders with the suffix _stats_figures contain statistical analyses and figure-generation scripts, which take outputs from the other folders as input.
 
-- LB23: Figure 2, 3, S2, S3, S4, S5, S7, S8
+- LB23: Figure 2, 3, S2, S3, S5, S6
 
-- LB24: Figure S6A
+- LB24: Figure S4A
 
-- LB25: Figure S6B
+- LB25: Figure S4B
 
-- LB21: Figure S6C
+- LB21: Figure S4C
 
-- LB27: Figure S6D
+- LB27: Figure S4D
 
-- LY23: Figure S9
+- LY23: Figure S7
 
-- LZ23: Figure S10
+- LZ23: Figure S8
 
-- LC23: Figure S11 ABC
+- LC23: Figure S9 ABC
 
-- LD23: Figure S11 DEF
+- LD23: Figure S9 DEF
 
-- NB23_PC1: Figure S12 ABC
+- NB23_PC1: Figure S10 ABC
 
-- NB23_PC1andPC2: Figure S12 DEF
+- NB23_PC1andPC2: Figure S10 DEF
 
-- MB23: Figure S13
+- MB23: Figure S11 ABC
 
-- LB23: Figure S14
+- JB23: Figure S11 DEF
 
-- LH23: Figure S15 A
+- LH23: Figure S12 A
 
-- LG23: Figure S15 B
+- LG23: Figure S12 B
 
-- LI23: Figure S15 C
+- LI23: Figure S12 C
 
-- RB23: Figure S16 A
+- RB23: Figure S13 A
 
-- SB23: Figure S16 B
+- SB23: Figure S13 B
+
+
