@@ -12,7 +12,7 @@ The expected runtime of the entire pipeline is approximately 24-36 hours, depend
 
 ## software
 
-The code was developed and tested using MATLAB R2026a on a Mac laptop and the NYU Abu Dhabi (NYUAD) HPC cluster. R version 4.2.1 was used on the Mac laptop. The software is made publicly available under the MIT License.
+The code was developed and tested using MATLAB R2022a on a Mac laptop and the NYU Abu Dhabi (NYUAD) HPC cluster. R version 4.2.1 was used on the Mac laptop. The software is made publicly available under the MIT License.
 
 ## task_design
 
