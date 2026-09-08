@@ -80,4 +80,6 @@ Folders define distinct blocks of analysis. For example, LB23 contains empirical
 
 - SB23: Figure S13 B
 
+- X_matrix: Code for computing the neural activity matrix used as input to the analyses in the LB23 folder.
+
 
