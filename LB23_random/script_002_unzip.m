@@ -1,9 +1,0 @@
-%% unzip
-
-cd /path_to_local/results/neural_subspaces/LB23_random
-
-for rand_i = 1:1000
-
-    system(['unzip rand' num2str(rand_i) '.zip']);
-
-end
