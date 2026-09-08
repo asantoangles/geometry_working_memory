@@ -1,6 +1,6 @@
 # geometry_working_memory
 
-Code of manuscript: Santo-Angles A., Yang J., Zhou Y., Chu W.K.H., Lindsay G.W., Sreenivasan K.K. Neural Subspaces Encode Sequential Working Memory, but Neural Sequences Do Not. bioRxiv (2025). doi: https://doi.org/10.1101/2025.09.05.674385
+Code of manuscript: Santo-Angles A., Yang J., Zhou Y., Chu W.K.H., Lindsay G.W., Sreenivasan K.K. Neural Subspaces Encode Sequential Working Memory Without Detectable Neural Sequences. Nature Communications, in press. Accepted 28 August 2026. Preprint at bioRxiv doi: https://doi.org/10.1101/2025.09.05.674385
 
 To facilitate reproducibility, intermediate outputs from both the neural geometry and neural sequence analyses are available at the OSF repository https://osf.io/hvq8p.
 
